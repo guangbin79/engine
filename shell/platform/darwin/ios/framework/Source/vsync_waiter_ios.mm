@@ -49,7 +49,7 @@ void VsyncWaiterIOS::AwaitVSync() {
 
 @implementation VSyncClient {
   flutter::VsyncWaiter::Callback callback_;
-  fml::scoped_nsobject<CADisplayLink> display_link_;
+  fml::scoped_nsobject<NSObject<OS_dispatch_source>> gcd_timer_;
 }
 
 - (instancetype)initWithTaskRunner:(fml::RefPtr<fml::TaskRunner>)task_runner
@@ -58,15 +58,19 @@ void VsyncWaiterIOS::AwaitVSync() {
 
   if (self) {
     callback_ = std::move(callback);
-    display_link_ = fml::scoped_nsobject<CADisplayLink> {
-      [[CADisplayLink displayLinkWithTarget:self selector:@selector(onDisplayLink:)] retain]
+    dispatch_queue_t queue = dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0);
+    gcd_timer_ = fml::scoped_nsobject<NSObject<OS_dispatch_source>> {
+      [dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue) retain]
     };
-    display_link_.get().paused = YES;
 
-    task_runner->PostTask([client = [self retain]]() {
-      [client->display_link_.get() addToRunLoop:[NSRunLoop currentRunLoop]
-                                        forMode:NSRunLoopCommonModes];
-      [client release];
+    dispatch_source_set_timer(gcd_timer_.get(), DISPATCH_TIME_NOW, 0.016675 * NSEC_PER_SEC, 0);
+    dispatch_source_set_event_handler(gcd_timer_.get(), ^{
+      fml::TimePoint frame_start_time = fml::TimePoint::Now();
+      fml::TimePoint frame_target_time = frame_start_time + fml::TimeDelta::FromSecondsF(0.016675);
+
+      dispatch_suspend(gcd_timer_.get());
+
+      callback_(frame_start_time, frame_target_time);
     });
   }
 
@@ -74,21 +78,11 @@ void VsyncWaiterIOS::AwaitVSync() {
 }
 
 - (void)await {
-  display_link_.get().paused = NO;
-}
-
-- (void)onDisplayLink:(CADisplayLink*)link {
-  fml::TimePoint frame_start_time = fml::TimePoint::Now();
-  fml::TimePoint frame_target_time = frame_start_time + fml::TimeDelta::FromSecondsF(link.duration);
-
-  display_link_.get().paused = YES;
-
-  callback_(frame_start_time, frame_target_time);
+  dispatch_resume(gcd_timer_.get());
 }
 
 - (void)invalidate {
-  // [CADisplayLink invalidate] is thread-safe.
-  [display_link_.get() invalidate];
+  dispatch_source_cancel(gcd_timer_.get());
 }
 
 - (void)dealloc {
