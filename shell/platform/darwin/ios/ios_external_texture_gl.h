@@ -28,8 +28,7 @@ class IOSExternalTextureGL : public flutter::Texture {
 
  private:
   NSObject<FlutterTexture>* external_texture_;
-  fml::CFRef<CVOpenGLESTextureCacheRef> cache_ref_;
-  fml::CFRef<CVOpenGLESTextureRef> texture_ref_;
+  sk_sp<SkImage> image_;
   FML_DISALLOW_COPY_AND_ASSIGN(IOSExternalTextureGL);
 };
 
