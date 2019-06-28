@@ -7,6 +7,7 @@
 #import <OpenGLES/EAGL.h>
 #import <OpenGLES/ES2/gl.h>
 #import <OpenGLES/ES2/glext.h>
+#import <CoreImage/CoreImage.h>
 
 #include "flutter/shell/platform/darwin/ios/framework/Source/vsync_waiter_ios.h"
 #include "third_party/skia/include/core/SkSurface.h"
@@ -81,26 +82,53 @@ IOSExternalTextureGL::IOSExternalTextureGL(int64_t textureId,
 
 IOSExternalTextureGL::~IOSExternalTextureGL() = default;
 
+CGImageRef imageFromCVPixelBufferRef(CVPixelBufferRef pixelBuffer, int width, int height) {
+    if (CVPixelBufferGetHeight(pixelBuffer) == 0 || CVPixelBufferGetWidth(pixelBuffer) == 0) {
+      return nil;
+    }
+
+    CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+    CIImage *ciImage = [CIImage imageWithCVPixelBuffer:pixelBuffer];
+    CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+
+    CIFilter *filter = [CIFilter filterWithName:@"CIAffineTransform" keysAndValues:kCIInputImageKey, ciImage, nil];
+    [filter setDefaults];
+    CGFloat wscale = (CGFloat)width / CVPixelBufferGetWidth(pixelBuffer);
+    CGFloat hscale = (CGFloat)height / CVPixelBufferGetHeight(pixelBuffer);
+    CGAffineTransform transform = CGAffineTransformMakeScale(wscale, hscale);
+    [filter setValue:[NSValue valueWithBytes:&transform objCType:@encode(CGAffineTransform)] forKey:@"inputTransform"];
+    CIImage *outputImage = [filter outputImage];
+
+    CIContext *temporaryContext = [CIContext contextWithOptions:@{kCIContextUseSoftwareRenderer : @(NO)}];
+    CGImageRef image = [temporaryContext createCGImage:outputImage fromRect:[outputImage extent]];
+    //CGImageRelease(videoImage);
+    return image;
+}
+
 void IOSExternalTextureGL::Paint(SkCanvas& canvas,
                                  const SkRect& bounds,
                                  bool freeze,
                                  GrContext* context) {
-  SkPixmap pixmap;
-  CVPixelBufferRef pixels = [external_texture_ copyPixelBuffer];
+  CVPixelBufferRef pixelBuffer = [external_texture_ copyPixelBuffer];
+  CGImageRef cgimage = imageFromCVPixelBufferRef(pixelBuffer, bounds.width(), bounds.height());
 
-  CVPixelBufferLockBaseAddress(pixels, kCVPixelBufferLock_ReadOnly);
+  if (cgimage == nil) {
+    return;
+  }
 
-  pixmap.reset(SkImageInfo::Make(CVPixelBufferGetWidth(pixels), CVPixelBufferGetHeight(pixels), kBGRA_8888_SkColorType, kPremul_SkAlphaType),//kOpaque_SkAlphaType),
-                    CVPixelBufferGetBaseAddress(pixels), CVPixelBufferGetBytesPerRow(pixels));
-  sk_sp<SkImage> image = SkImage::MakeRasterCopy(pixmap);
-
-  CVPixelBufferUnlockBaseAddress(pixels, kCVPixelBufferLock_ReadOnly);
+  CFDataRef cfdata = CGDataProviderCopyData(CGImageGetDataProvider(cgimage));
+  const unsigned char * pixels = CFDataGetBytePtr(cfdata);
+  CFIndex length = CFDataGetLength(cfdata);
+  SkImageInfo info = SkImageInfo::Make(CGImageGetWidth(cgimage), CGImageGetHeight(cgimage), kBGRA_8888_SkColorType, kPremul_SkAlphaType);
+  sk_sp<SkData> data = SkData::MakeWithoutCopy(pixels, length);
+  sk_sp<SkImage> image = SkImage::MakeRasterData(info, data, CGImageGetBytesPerRow(cgimage));
 
   FML_DCHECK(image) << "Failed to create SkImage from Texture.";
   if (image) {
     canvas.drawImage(image, bounds.x(), bounds.y());
   }
 }
+
 
 void IOSExternalTextureGL::OnGrContextCreated() {}
 
