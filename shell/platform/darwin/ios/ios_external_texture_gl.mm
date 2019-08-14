@@ -85,9 +85,12 @@ IOSExternalTextureGL::IOSExternalTextureGL(int64_t textureId,
                                            NSObject<FlutterTexture>* externalTexture)
     : Texture(textureId), external_texture_(externalTexture), image_(nil) {
   FML_DCHECK(external_texture_);
+  [external_texture_ retain];
 }
 
-IOSExternalTextureGL::~IOSExternalTextureGL() = default;
+IOSExternalTextureGL::~IOSExternalTextureGL() {
+  [external_texture_ release];
+}
 
 void IOSExternalTextureGL::Paint(SkCanvas& canvas,
                                  const SkRect& bounds,
