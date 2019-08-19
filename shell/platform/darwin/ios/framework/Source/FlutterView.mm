@@ -76,15 +76,7 @@ id<FlutterViewEngineDelegate> _delegate;
 }
 
 + (Class)layerClass {
-#if TARGET_IPHONE_SIMULATOR
   return [CALayer class];
-#else  // TARGET_IPHONE_SIMULATOR
-#if FLUTTER_SHELL_ENABLE_METAL
-  return [CAMetalLayer class];
-#else   // FLUTTER_SHELL_ENABLE_METAL
-  return [CAEAGLLayer class];
-#endif  //  FLUTTER_SHELL_ENABLE_METAL
-#endif  // TARGET_IPHONE_SIMULATOR
 }
 
 - (std::unique_ptr<flutter::IOSSurface>)createSurface:

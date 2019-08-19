@@ -57,11 +57,7 @@
 }
 
 + (Class)layerClass {
-#if TARGET_IPHONE_SIMULATOR
   return [CALayer class];
-#else   // TARGET_IPHONE_SIMULATOR
-  return [CAEAGLLayer class];
-#endif  // TARGET_IPHONE_SIMULATOR
 }
 
 - (std::unique_ptr<flutter::IOSSurface>)createSoftwareSurface {
