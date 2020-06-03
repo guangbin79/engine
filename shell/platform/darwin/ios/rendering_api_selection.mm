@@ -53,9 +53,7 @@ bool ShouldUseMetalRenderer() {
 #endif  // FLUTTER_SHELL_ENABLE_METAL
 
 IOSRenderingAPI GetRenderingAPIForProcess() {
-#if TARGET_IPHONE_SIMULATOR
   return IOSRenderingAPI::kSoftware;
-#endif  // TARGET_IPHONE_SIMULATOR
 
 #if FLUTTER_SHELL_ENABLE_METAL
   static bool should_use_software = ShouldUseSoftwareRenderer();
@@ -71,19 +69,6 @@ IOSRenderingAPI GetRenderingAPIForProcess() {
 }
 
 Class GetCoreAnimationLayerClassForRenderingAPI(IOSRenderingAPI rendering_api) {
-  switch (rendering_api) {
-    case IOSRenderingAPI::kSoftware:
-      return [CALayer class];
-    case IOSRenderingAPI::kOpenGLES:
-      return [CAEAGLLayer class];
-#if !TARGET_IPHONE_SIMULATOR
-    case IOSRenderingAPI::kMetal:
-      return [CAMetalLayer class];
-#endif  // !TARGET_IPHONE_SIMULATOR
-    default:
-      break;
-  }
-  FML_CHECK(false) << "Unknown client rendering API";
   return [CALayer class];
 }
 
