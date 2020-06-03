@@ -86,6 +86,7 @@ NSString* const FlutterDefaultDartEntrypoint = nil;
 - (instancetype)initWithName:(NSString*)labelPrefix
                      project:(FlutterDartProject*)project
       allowHeadlessExecution:(BOOL)allowHeadlessExecution {
+  NSLog(@"FlutterEngine version: cpu-1.16.3");
   self = [super init];
   NSAssert(self, @"Super init cannot be nil");
   NSAssert(labelPrefix, @"labelPrefix is required");

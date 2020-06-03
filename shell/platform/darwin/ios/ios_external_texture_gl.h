@@ -22,9 +22,7 @@ class IOSExternalTextureGL final : public Texture {
  private:
   bool new_frame_ready_ = false;
   fml::scoped_nsobject<NSObject<FlutterTexture>> external_texture_;
-  fml::CFRef<CVOpenGLESTextureCacheRef> cache_ref_;
-  fml::CFRef<CVOpenGLESTextureRef> texture_ref_;
-  fml::CFRef<CVPixelBufferRef> buffer_ref_;
+  sk_sp<SkImage> image_;
 
   // |Texture|
   void Paint(SkCanvas& canvas, const SkRect& bounds, bool freeze, GrContext* context) override;
@@ -40,10 +38,6 @@ class IOSExternalTextureGL final : public Texture {
 
   // |Texture|
   void OnTextureUnregistered() override;
-
-  void CreateTextureFromPixelBuffer();
-
-  void EnsureTextureCacheExists();
 
   bool NeedUpdateTexture(bool freeze);
 
