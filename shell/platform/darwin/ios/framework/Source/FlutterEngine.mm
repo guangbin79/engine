@@ -101,6 +101,7 @@ static constexpr int kNumProfilerSamplesPerSec = 5;
 - (instancetype)initWithName:(NSString*)labelPrefix
                      project:(FlutterDartProject*)project
       allowHeadlessExecution:(BOOL)allowHeadlessExecution {
+          NSLog(@"FlutterEngine version: cpu-1.22.3");
   self = [super init];
   NSAssert(self, @"Super init cannot be nil");
   NSAssert(labelPrefix, @"labelPrefix is required");

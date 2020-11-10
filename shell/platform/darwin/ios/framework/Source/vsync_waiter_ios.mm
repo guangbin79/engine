@@ -92,22 +92,7 @@ float VsyncWaiterIOS::GetDisplayRefreshRate() const {
 }
 
 - (float)displayRefreshRate {
-  if (@available(iOS 10.3, *)) {
-    auto preferredFPS = display_link_.get().preferredFramesPerSecond;  // iOS 10.0
-
-    // From Docs:
-    // The default value for preferredFramesPerSecond is 0. When this value is 0, the preferred
-    // frame rate is equal to the maximum refresh rate of the display, as indicated by the
-    // maximumFramesPerSecond property.
-
-    if (preferredFPS != 0) {
-      return preferredFPS;
-    }
-
-    return [UIScreen mainScreen].maximumFramesPerSecond;  // iOS 10.3
-  } else {
     return 60.0;
-  }
 }
 
 - (void)await {
