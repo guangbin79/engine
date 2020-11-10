@@ -94,13 +94,8 @@
   url.reset([[NSURL alloc] initWithString:uri]);
 
   DNSServiceFlags flags = kDNSServiceFlagsDefault;
-#if TARGET_IPHONE_SIMULATOR
   // Simulator needs to use local loopback explicitly to work.
   uint32_t interfaceIndex = if_nametoindex("lo0");
-#else   // TARGET_IPHONE_SIMULATOR
-  // Physical devices need to request all interfaces.
-  uint32_t interfaceIndex = 0;
-#endif  // TARGET_IPHONE_SIMULATOR
   const char* registrationType = "_dartobservatory._tcp";
   const char* domain = "local.";  // default domain
   uint16_t port = [[url port] unsignedShortValue];
